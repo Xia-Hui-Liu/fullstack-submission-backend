@@ -88,4 +88,4 @@ app.delete('/api/persons/:id', (req, res) => {
 
 const port = process.env.PORT || 4001;
 app.listen(port, () => {
-   console.log(`Service listen on port ${PORT}`)});
+   console.log(`Service listen on port ${port}`)});
