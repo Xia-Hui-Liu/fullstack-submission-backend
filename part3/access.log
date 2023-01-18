@@ -1,0 +1,1 @@
+::1 - - [16/Jan/2023:14:01:26 +0000] "GET /api/persons/ HTTP/1.1" 304 - "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
