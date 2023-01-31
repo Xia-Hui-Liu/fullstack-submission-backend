@@ -1,0 +1,1 @@
+{"version":3,"file":"static/css/main.502b06d1.css","mappings":"AACA,SACI,wBAA2B,CAC3B,WAAY,CACZ,eAEJ","sources":["index.css"],"sourcesContent":["\n.message {\n    background-color: lightgray;\n    color: green;\n    font-size: 1.5em;\n    /* border: 3px solid green ; */\n}"],"names":[],"sourceRoot":""}

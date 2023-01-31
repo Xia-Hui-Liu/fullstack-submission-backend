@@ -1,14 +1,22 @@
 const morgan = require('morgan');
 const cors = require('cors');
+const path = require('path');
 
 const express = require("express");
 const app = express();
 
+app.use(express.static(path.join(__dirname, 'build')));
 app.use(express.json());
 app.use(cors());
 
 morgan.token('body', (req, res) => JSON.stringify(req.body));
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
+
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+  });
 
 let persons = [
     { 
@@ -33,6 +41,10 @@ let persons = [
     }
 ];
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
+  
 app.get('/api/persons', (req, res) => {
     res.json(persons);
 });
@@ -61,9 +73,10 @@ const generateId = () => {
     return maxId + 1
 }
 app.post('/api/persons', (req, res) => {
-    const findName= persons.find(e => e.name === req.body.name);
-    const findNumber = persons.find(e => e.number === req.body.number);
-    if (!req.body.name || !req.body.number){
+    const body = req.body;
+    const findName= persons.find(e => e.name === body.name);
+    const findNumber = persons.find(e => e.number === body.number);
+    if (!body.name || !body.number){
         res.status(400).send('name and number are required')
         return;
     }
@@ -72,8 +85,8 @@ app.post('/api/persons', (req, res) => {
         return;
     }
     const person = {
-        name: req.body.name,
-        number: req.body.number,
+        name: body.name,
+        number: body.number,
         id: generateId(),
     }
     persons = persons.concat(person);
