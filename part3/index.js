@@ -1,104 +1,110 @@
 const morgan = require('morgan');
 const cors = require('cors');
-const path = require('path');
+const Person = require('./models/person');
 
-const express = require("express");
+const express = require('express');
 const app = express();
 
-app.use(express.static(path.join(__dirname, 'build')));
+app.use(express.static('build'));
 app.use(express.json());
 app.use(cors());
 
-morgan.token('body', (req, res) => JSON.stringify(req.body));
+morgan.token('body', (req) => JSON.stringify(req.body));
 app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
 
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    next();
-  });
-
 let persons = [
-    { 
-      "id": 1,
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": 2,
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": 3,
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": 4,
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
+  { 
+    'id': 1,
+    'name': 'Arto Hellas', 
+    'number': '040-123456'
+  },
+  { 
+    'id': 2,
+    'name': 'Ada Lovelace', 
+    'number': '39-44-5323523'
+  },
+  { 
+    'id': 3,
+    'name': 'Dan Abramov', 
+    'number': '12-43-234345'
+  },
+  { 
+    'id': 4,
+    'name': 'Mary Poppendieck', 
+    'number': '39-23-6423122'
+  }
 ];
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
-  });
-  
 app.get('/api/persons', (req, res) => {
-    res.json(persons);
+  Person.find({}).then((result) => {
+    res.json(result);
+  });
 });
 
 app.get('/info', (req, res) => {
-    const date = new Date(Date.now())
-    res.send(`<p> Phonebook has info for ${persons.length} people </p> <p> ${date.toUTCString()}</p>`)
-  })
+  Person.countDocuments().then((count) => {
+    const date = new Date(Date.now());
+    res.send(`<p> Phonebook has info for ${count} people </p> <p> ${date.toUTCString()}</p>`);
+  });
+});
 
-app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id);
-    const person = persons.find(person => person.id === id);
-    if(person){
-    res.json(person)
-    } else {
-        res.status(404).send()
-    }
-})
+app.get('/api/persons/:id', (req, res, next) => {
+  Person.findById(req.params.id)
+    .then((person) => {
+      if (!person) {
+        return res.status(404).json({ error: 'person not found' });
+      }
+      res.json(person);
+    })
+    .catch((error) => next(error)
+    );
+});
 
-const generateId = () => {
-    const min = Math.max(...persons.map(e => e.id));
-    const max = 99;
-    const maxId = persons.length > 0
-        ? Math.floor(Math.random() * (max - min) + min)
-        :0 
-    return maxId + 1
-}
 app.post('/api/persons', (req, res) => {
-    const body = req.body;
-    const findName= persons.find(e => e.name === body.name);
-    const findNumber = persons.find(e => e.number === body.number);
-    if (!body.name || !body.number){
-        res.status(400).send('name and number are required')
-        return;
+  const person = new Person({
+    name: req.body.name,
+    number: req.body.number,
+  });
+  persons = persons.concat(person);
+  person.save().then((savePerson) => {
+    res.json(savePerson);
+  }).catch((error) => {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
     }
-    if(findName || findNumber){
-        res.status(400).send({ error: 'name and number must be unique' });
-        return;
-    }
-    const person = {
-        name: body.name,
-        number: body.number,
-        id: generateId(),
-    }
-    persons = persons.concat(person);
-    res.json(person);
-})
+    return res.status(500).json({ error: 'Something went wrong' });
+  });
+});
+
+app.put('/api/persons/:id', (req, res) => {
+  Person.findByIdAndUpdate(req.params.id, req.body, { new: true }, (err, person) => {
+    if (err) return res.status(500).send(err);
+    return res.send(person);
+  });
+});
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' });
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message });
+  }
+  next(error);
+};
+  
+app.use(errorHandler);
+
 
 app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id);
-    persons = persons.filter(person => person.id !== id);
-    res.status(204).end()  
-})
+  Person.findByIdAndRemove(req.params.id).then(() => {
+    res.status(204).end();
+  });
+});
+
 
 const port = process.env.PORT || 4001;
 app.listen(port, () => {
-   console.log(`Service listen on port ${port}`)});
+  console.log(`Service listen on port ${port}`);
+});
+
