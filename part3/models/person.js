@@ -19,16 +19,21 @@ mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
 const personSchema = new mongoose.Schema({
   name: {
     type: String,
+    minlength: 3,
     required: true,
   },
   number: {
     type: String,
+    minlength: 8,
     required: true,
+    validate: {
+      validator: function (v) {
+        return  /\d{2}-\d+/.test(v) || /\d{3}-\d+/.test(v);
+      },
+      message: props => `${props.value} is not a valid phone number!`
+    },
   },
 });
-
-// eslint-disable-next-line no-unused-vars
-const Person = mongoose.model('Person', personSchema);
 
 personSchema.set('toJSON', {
   transform: (document, returnedObject) => {
