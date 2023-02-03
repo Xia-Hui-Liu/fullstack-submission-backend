@@ -8,6 +8,9 @@ The app uses the following modules:
 - mongoose for connecting to the MongoDB database
 - morgan for logging HTTP requests
 - nodemon for restarting the server when changes are made
+- eslint for linting the code
+- jest for testing the code
+- lodash for utility functions
 
 ### How it works
 The app uses the following routes:
