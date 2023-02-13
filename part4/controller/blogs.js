@@ -1,5 +1,6 @@
 const blogsRouter = require("express").Router();
 const Blog = require("../models/blog");
+const User = require("../models/user");
 
 blogsRouter.get("/", (request, response) => {
   Blog
@@ -20,20 +21,21 @@ blogsRouter.get("/:id", (request, response, next) => {
     .catch(error => next(error));
 });
 
-blogsRouter.post("/", (request, response, next) => {
-  const blog = new Blog(request.body);
-  // if blog.title and blog.url are undefined, return 400 Bad Request
-  if (blog.title === undefined || blog.url === undefined) {
-    return response.status(400).json({ error: "title and url are required" });
-  } else if (blog.likes === undefined) {
-    blog.likes = 0;
+blogsRouter.post("/", async(request, response) => {
+// a valid blog can be added
+  const body = request.body;
+  // a blog without likes property will default to the value 0
+  if (body.likes === undefined) {
+    body.likes = 0;
   }
-  blog
-    .save()
-    .then(result => {
-      response.status(201).json(result);
-    })
-    .catch(error => next(error));
+  // return 400 Bad Request if title or url is missing
+  if (body.title === undefined || body.url === undefined) {
+    return response.status(400).json({ error: "title and url are required" });
+  }
+  const blog = new Blog(body);
+  const savedBlog = await blog.save();
+  response.status(201).json(savedBlog);
+  
 });
 
 blogsRouter.delete("/:id", (request, response, next) => {
@@ -45,15 +47,6 @@ blogsRouter.delete("/:id", (request, response, next) => {
 });
 
 blogsRouter.put("/:id", (request, response, next) => {
-//   const body = request.body;
-
-  //   const blog = {
-  //     title: body.title,
-  //     author: body.author,
-  //     url: body.url,
-  //     likes: body.likes
-  //   };
-  // update likes property of the blog with the given id
   Blog.findByIdAndUpdate(request.params.id, {$inc:{ likes: 10}}, { new: true })
     .then(updatedBlog => {
       response.json(updatedBlog);
