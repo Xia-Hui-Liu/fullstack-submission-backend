@@ -1,6 +1,7 @@
 const logger = require("./logger");
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const errorHandler = (error, request, response, next) => {
   logger.error(error.message);
@@ -14,7 +15,6 @@ const errorHandler = (error, request, response, next) => {
   } else if (error.name === "TokenExpiredError") {
     return response.status(401).json({ error: "token expired" });
   }
-
   next(error);
 };
 
