@@ -98,7 +98,7 @@ const middleware = require("../utils/middleware");
 
 blogsRouter.get("/", async (request, response, next) => {
   try {
-    const blogs = await Blog.find({}).populate("user", { username: 1, name: 1 });
+    const blogs = await Blog.find({}).populate("user", {url:1, username: 1, name: 1 });
     response.json(blogs);
   } catch (exception) {
     next(exception);
@@ -177,5 +177,6 @@ blogsRouter.put("/:id", async (request, response, next) => {
     next(exception);
   }
 });
+
 
 module.exports = blogsRouter;

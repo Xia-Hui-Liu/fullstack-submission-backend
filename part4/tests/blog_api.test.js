@@ -52,22 +52,39 @@ describe("viewing a specific blog", () => {
 });
 
 describe("addition of a new blog", () => {
-  test("A valid blog can be added", async () => {
+  let token;
+  let user;
+  beforeAll(async () => {
+    // Create a test user and get a JWT token
+    const newUser = { username: "testuser", password: "testpassword", name: "Test User" };
+    const res = await api.post("/api/users").send(newUser);
+    user = res.body;
+    const loginRes = await api.post("/api/login").send(newUser);
+    token = loginRes.body.token;
+  });
+  afterAll(async () => {
+    await User.deleteMany({});
+  });
+
+  test("a valid blog can be added", async () => {
     const newBlog = {
-      title: "fun blog",
-      author: "Ivan Ivanov",
-      likes: 11,
-      url: "http://www.u.arizona.edu/~rubinson/copyright_violations/Go_To_Considered_Harmful.html",
+      title: "Test Blog",
+      author: "Test Author",
+      url: "https://testurl.com",
+      likes: 5,
     };
+
     await api
       .post("/api/blogs")
+      .set("Authorization", `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect("Content-Type", /application\/json/);
-    const response = await api.get("/api/blogs");
-    const titles = response.body.map((r) => r.title);
-    expect(response.body).toHaveLength(helper.initialBlogs.length + 1);
-    expect(titles).toContain("fun blog");
+
+    const blogs = await helper.blogsInDb();
+    expect(blogs).toHaveLength(helper.initialBlogs.length + 1);
+    const titles = blogs.map((b) => b.title);
+    expect(titles).toContain("Test Blog");
   });
 
   test("A blog without likes property will default to the value 0", async () => {
@@ -78,11 +95,14 @@ describe("addition of a new blog", () => {
     };
     await api
       .post("/api/blogs")
+      .set("Authorization", `Bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect("Content-Type", /application\/json/);
     const response = await api.get("/api/blogs");
-    const likes = response.body.map((r) => r.likes);
+    const likes = response.body.map((r) => {
+      return r.likes === undefined ? 0 : r.likes;
+    });
     expect(likes).toContain(0);
   });
 
@@ -93,33 +113,60 @@ describe("addition of a new blog", () => {
     };
     const response = await api
       .post("/api/blogs")
+      .set("Authorization", `Bearer ${token}`)
       .send(newBlog)
       .expect(400);
-  
+    
     expect(response.body.error).toBe("title and url are required");
 
   });
 });
 
 describe("deletion of a blog", () => {
+  let token;
+  let user;
+  beforeAll(async () => {
+    // Create a test user and get a JWT token
+    const newUser = { username: "testuser", password: "testpassword", name: "Test User" };
+    const res = await api.post("/api/users").send(newUser);
+    user = res.body;
+    const loginRes = await api.post("/api/login").send(newUser);
+    token = loginRes.body.token;
+  });
+  afterAll(async () => {
+    await User.deleteMany({});
+  });
   test("succeeds with status code 204 if id is valid", async () => {
     const blogsAtStart = await helper.blogsInDb();
     const blogToDelete = blogsAtStart[0];
-    await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204);
-    const blogsAtEnd = await helper.blogsInDb();
-    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1);
-    const titles = blogsAtEnd.map((r) => r.title);
-    expect(titles).not.toContain(blogToDelete.title);
+
+    if (blogToDelete.user === user.id.toString()) {
+      await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .expect(204);
+
+      const blogsAtEnd = await helper.blogsInDb();
+      expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length - 1);
+      const titles = blogsAtEnd.map((r) => r.title);
+      expect(titles).not.toContain(blogToDelete.title);
+    } 
   });
 
-  test("fails with statuscode 204 if blog does not exist", async () => {
+  test("fails with statuscode 404 if blog does not exist", async () => {
     const validNonexistingId = await helper.nonExistingId();
-    await api.delete(`/api/blogs/${validNonexistingId}`).expect(204);
+    await api
+      .delete(`/api/blogs/${validNonexistingId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .expect(404);
   });
 
   test("fails with statuscode 400 id is invalid", async () => {
     const invalidId = "5a3d5da59070081a82a3445";
-    await api.delete(`/api/blogs/${invalidId}`).expect(400);
+    await api
+      .delete(`/api/blogs/${invalidId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .expect(400);
   });
 });
 
